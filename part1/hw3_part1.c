@@ -58,7 +58,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
 
     FILE* file_at_sh = file;
     //find SYMTAB inside section header table:
-    while(section_header_table.sh_type!="SHT_SYMTAB"){
+    while(section_header_table.sh_type!=0x2){
         fseek(file, section_size, SEEK_CUR);
         fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
     }
@@ -86,11 +86,11 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //iterate over sym_table:
     int flag = 0;
     for (Elf64_Xword j = 0; j < num_symbols; j++) {
-        char *curr_symbol_name = str_table + symbol_table[j].st_name;
+        fseek(file,symtable_offset+(j*entry_size_symtable),SEEK_SET);
+        fread(&symbol_table,sym_table_size,1,file);
+        char *curr_symbol_name = str_table + symbol_table.st_name;
         if (strcmp(curr_symbol_name, symbol_name) == 0) {
-            fseek(file,symtable_offset+(j*entry_size_symtable),SEEK_SET);
-            fread(&symbol_table,sym_table_size,1,file);
-            if(ELF64_ST_BIND(symbol_table.st_info)=="GLOBAL"){
+            if(ELF64_ST_BIND(symbol_table.st_info)==1){
                 if(symbol_table.st_shndx==SHN_UNDEF){
                     *error_val = -4;
                     return -1;
@@ -99,7 +99,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
                     return symbol_table.st_value;
                 }
             }
-            if(ELF64_ST_BIND(symbol_table.st_info)=="LOCAL"){
+            if(ELF64_ST_BIND(symbol_table.st_info)==0){
                 flag =1;
                 continue;
             }
