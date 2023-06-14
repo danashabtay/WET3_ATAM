@@ -42,34 +42,46 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     Elf64_Half elf_type = elf_header.e_type;
 
     //check if the type is exe:
-    if(elf_type!=ET_EXEC) {
+    if(elf_type!=2) {
         *error_val = -3;
+        fclose(file);
         return -1;
     }
 
     //else, the ELF file is an exe file:
-    // find section table:
+    // find section table offset from beginning of file:
     Elf64_Off section_offset=elf_header.e_shoff;
+    // size of entry in section table:
     Elf64_Half section_size=elf_header.e_shentsize;
+    //num of entries in section table:
     Elf64_Half section_num=elf_header.e_shnum;
+
     Elf64_Shdr section_header_table;
     fseek(file, section_offset, SEEK_SET);
     fread(&section_header_table,(section_num*section_size),1,file);
 
-    FILE* file_at_sh = file;
     //find SYMTAB inside section header table:
     while(section_header_table.sh_type!=0x2){
         fseek(file, section_size, SEEK_CUR);
         fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
     }
+
     //file curr at section table->entry is symtab
+
+    //offset of symtable from beginning of file:
     Elf64_Off symtable_offset = section_header_table.sh_offset;
+    // entry size of symbol in symbol table:
     Elf64_Xword entry_size_symtable = section_header_table.sh_entsize;
+    // symbol table size:
     Elf64_Xword sym_table_size = section_header_table.sh_size;
+    // num of section in section header table that is the string table belonging to symtable - strtable:
     Elf64_Word sym_table_link = section_header_table.sh_link;
+
     Elf64_Xword num_symbols = sym_table_size/entry_size_symtable;
+
     //create sym_table:
     Elf64_Sym symbol_table;
+    fseek(file,symtable_offset,SEEK_SET);
     fread(&symbol_table, sym_table_size, 1, file);
 
 
@@ -78,24 +90,36 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
     //file curr at section table->entry is strtab
     Elf64_Xword str_table_size = section_header_table.sh_size;
+    // offset of strtab from beginning of file:
+    Elf64_Off strtab_offset = section_header_table.sh_offset;
     //create str_table:
     char* str_table = (char*)malloc(str_table_size);
+    fseek(file,strtab_offset,SEEK_SET);
     fread(str_table,str_table_size,1,file);
 
 
     //iterate over sym_table:
     int flag = 0;
+    FILE* file2 = file;
     for (Elf64_Xword j = 0; j < num_symbols; j++) {
         fseek(file,symtable_offset+(j*entry_size_symtable),SEEK_SET);
         fread(&symbol_table,sym_table_size,1,file);
-        char *curr_symbol_name = str_table + symbol_table.st_name;
+
+        fseek(file2,(strtab_offset+(symbol_table.st_name)),SEEK_SET);
+        char *curr_symbol_name;
+        fread(curr_symbol_name,entry_size_symtable,1,file2);
+
         if (strcmp(curr_symbol_name, symbol_name) == 0) {
             if(ELF64_ST_BIND(symbol_table.st_info)==1){
-                if(symbol_table.st_shndx==SHN_UNDEF){
+                if(symbol_table.st_shndx==0){
                     *error_val = -4;
+                    free(str_table);
+                    fclose(file);
                     return -1;
                 }
                 else {
+                    free(str_table);
+                    fclose(file);
                     return symbol_table.st_value;
                 }
             }
@@ -109,10 +133,14 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //if symbol is found but is a local symbol:
     if(flag==1){
         *error_val = -2;
+        free(str_table);
+        fclose(file);
         return -1;
     }
     //if symbol is not found in sym_table:
     *error_val = -1;
+    free(str_table);
+    fclose(file);
     return -1;
 }
 
