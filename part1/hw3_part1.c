@@ -32,8 +32,86 @@
  * return value		- The address which the symbol_name will be loaded to, if the symbol was found and is global.
  */
 unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val) {
-	//TODO: Implement.	
-	return 0;
+    FILE *file = fopen(exe_file_name, "rb");
+    if (file == NULL) {
+        return -1;
+    }
+
+    Elf64_Ehdr elf_header;
+    fread(&elf_header,sizeof(elf_header),1,file);
+    Elf64_Half elf_type = elf_header.e_type;
+
+    //check if the type is exe:
+    if(elf_type!=ET_EXEC) {
+        *error_val = -3;
+        return -1;
+    }
+
+    //else, the ELF file is an exe file:
+    // find section table:
+    Elf64_Off section_offset=elf_header.e_shoff;
+    Elf64_Half section_size=elf_header.e_shentsize;
+    Elf64_Half section_num=elf_header.e_shnum;
+    Elf64_Shdr section_header_table;
+    fseek(file, section_offset, SEEK_SET);
+    fread(&section_header_table,(section_num*section_size),1,file);
+
+    FILE* file_at_sh = file;
+    //find SYMTAB inside section header table:
+    while(section_header_table.sh_type!=SHT_SYMTAB){
+        fseek(file, section_size, SEEK_CUR);
+        fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
+    }
+    //file curr at section table->entry is symtab
+    Elf64_Off symtable_offset = section_header_table.sh_offset;
+    Elf64_Xword entry_size_symtable = section_header_table.sh_entsize;
+    Elf64_Xword sym_table_size = section_header_table.sh_size;
+    Elf64_Word sym_table_link = section_header_table.sh_link;
+    Elf64_Xword num_symbols = sym_table_size/entry_size_symtable;
+    //create sym_table:
+    Elf64_Sym symbol_table;
+    fread(&symbol_table, sym_table_size, 1, file);
+
+
+    //find STRTAB inside section header table:
+    fseek(file,section_offset+(sym_table_link*section_size),SEEK_SET);
+    fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
+    //file curr at section table->entry is strtab
+    Elf64_Xword str_table_size = section_header_table.sh_size;
+    //create str_table:
+    char* str_table = (char*)malloc(str_table_size);
+    fread(str_table,str_table_size,1,file);
+
+
+    //iterate over sym_table:
+    int flag = 0;
+    for (Elf64_Xword j = 0; j < num_symbols; j++) {
+        char *curr_symbol_name = str_table + symbol_table[j].st_name;
+        if (strcmp(curr_symbol_name, symbol_name) == 0) {
+            if(ELF64_ST_BIND(symbol_table[j].st_info)==GLOBAL){
+                if(symbol_table[j].st_shndx==SHN_UNDEF){
+                    *error_val = -4;
+                    return -1;
+                }
+                else {
+                    return symbol_table[j].st_value;
+                }
+            }
+            if(ELF64_ST_BIND(symbol_table[j].st_info)==LOCAL){
+                flag =1;
+                continue;
+            }
+            break;
+        }
+    }
+    //if symbol is found but is a local symbol:
+    if(flag==1){
+        *error_val = -2;
+        return -1;
+    }
+    //if symbol is not found in sym_table:
+    *error_val = -1;
+    return -1;
 }
 
 int main(int argc, char *const argv[]) {
