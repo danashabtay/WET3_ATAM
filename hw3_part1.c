@@ -41,8 +41,8 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     fread(&elf_header,sizeof(elf_header),1,file);
     Elf64_Half elf_type = elf_header.e_type;
 
-    print("here");
-    
+    printf("here");
+
     //check if the type is exe:
     if(elf_type!=2) {
         *error_val = -3;
