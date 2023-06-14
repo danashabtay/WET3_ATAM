@@ -100,15 +100,10 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
 
     //iterate over sym_table:
     int flag = 0;
-    FILE* file2 = file;
     for (Elf64_Xword j = 0; j < num_symbols; j++) {
         fseek(file,symtable_offset+(j*entry_size_symtable),SEEK_SET);
         fread(&symbol_table,sym_table_size,1,file);
-
-        fseek(file2,(strtab_offset+(symbol_table.st_name)),SEEK_SET);
-        char *curr_symbol_name;
-        fread(curr_symbol_name,entry_size_symtable,1,file2);
-
+        char *curr_symbol_name = str_table + symbol_table.st_name;
         if (strcmp(curr_symbol_name, symbol_name) == 0) {
             if(ELF64_ST_BIND(symbol_table.st_info)==1){
                 if(symbol_table.st_shndx==0){
