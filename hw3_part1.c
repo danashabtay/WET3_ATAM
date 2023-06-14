@@ -41,6 +41,8 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     fread(&elf_header,sizeof(elf_header),1,file);
     Elf64_Half elf_type = elf_header.e_type;
 
+    print("here");
+    
     //check if the type is exe:
     if(elf_type!=2) {
         *error_val = -3;
@@ -65,7 +67,6 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
         fseek(file, section_size, SEEK_CUR);
         fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
     }
-    printf("found symtable entry");
     //file curr at section table->entry is symtab
 
     //offset of symtable from beginning of file:
