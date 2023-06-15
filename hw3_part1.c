@@ -37,8 +37,8 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
         return -1;
     }
 
-    Elf64_Ehdr* elf_header;
-    if(fread(elf_header,sizeof(elf_header),1,file)!=1){
+    Elf64_Ehdr *elf_header;
+    if (fread(elf_header, sizeof(elf_header), 1, file) != 1) {
         fclose(file);
         return -1;
     };
@@ -46,11 +46,12 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     Elf64_Half elf_type = elf_header->e_type;
 
     //check if the type is exe:
-    if(elf_type!=ET_EXEC) {
+    if (elf_type != ET_EXEC) {
         *error_val = -3;
         fclose(file);
         return -1;
     }
+}
 
     /*
     //else, the ELF file is an exe file:
