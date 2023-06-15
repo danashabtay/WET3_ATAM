@@ -38,7 +38,10 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     }
 
     Elf64_Ehdr elf_header;
-    fread(elf_header, sizeof(elf_header), 1, file);
+    if(fread(&elf_header, sizeof(elf_header), 1, file)!=1){
+        fclose(file);
+        return -1;
+    }
     Elf64_Half elf_type = elf_header.e_type;
 
     //check if the type is exe:
@@ -72,13 +75,13 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //file curr at section table->entry is symtab
 
     //offset of symtable from beginning of file:
-    Elf64_Off symtable_offset = section_header_table.sh_offset;
+    Elf64_Off symtable_offset = section_header_table->sh_offset;
     // entry size of symbol in symbol table:
-    Elf64_Xword entry_size_symtable = section_header_table.sh_entsize;
+    Elf64_Xword entry_size_symtable = section_header_table->sh_entsize;
     // symbol table size:
-    Elf64_Xword sym_table_size = section_header_table.sh_size;
+    Elf64_Xword sym_table_size = section_header_table->sh_size;
     // num of section in section header table that is the string table belonging to symtable - strtable:
-    Elf64_Word sym_table_link = section_header_table.sh_link;
+    Elf64_Word sym_table_link = section_header_table->sh_link;
 
     Elf64_Xword num_symbols = sym_table_size/entry_size_symtable;
 
