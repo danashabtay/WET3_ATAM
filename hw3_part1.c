@@ -68,7 +68,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     }
 
     //find SYMTAB inside section header table:
-    while(section_header_table.sh_type!=0x2){
+    while(section_header_table->sh_type!=0x2){
         fseek(file, section_size, SEEK_CUR);
         fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
     }
@@ -95,14 +95,14 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     fseek(file,section_offset+(sym_table_link*section_size),SEEK_SET);
     fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
     //file curr at section table->entry is strtab
-    Elf64_Xword str_table_size = section_header_table.sh_size;
+    Elf64_Xword str_table_size = section_header_table->sh_size;
     // offset of strtab from beginning of file:
-    Elf64_Off strtab_offset = section_header_table.sh_offset;
+    Elf64_Off strtab_offset = section_header_table->sh_offset;
     //create str_table:
     char* str_table = (char*)malloc(str_table_size);
     fseek(file,strtab_offset,SEEK_SET);
     fread(str_table,str_table_size,1,file);
-
+    
 
     //iterate over sym_table:
     int flag = 0;
