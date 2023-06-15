@@ -50,8 +50,8 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
         return -1;
     }
 
-    Elf64_Ehdr* elf_header;
-    if(fread(elf_header, sizeof(elf_header), 1, file)!=1){
+    Elf64_Ehdr elf_header;
+    if(fread(&elf_header, sizeof(elf_header), 1, file)!=1){
         fclose(file);
         return -1;
     }
@@ -88,7 +88,11 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
             symtab_index=i;
         }
     }
-
+    if (symtab_index==-1){
+        free(section_header_table);
+        fclose(file);
+        return -1;
+    }
 
     /**file curr at the start of section table**/
 
@@ -107,11 +111,11 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
 
     //create sym_table:
     Elf64_Sym* symbol_table=malloc(sizeof(Elf64_Sym)*num_symbols);
-    /**setting file to point to the start of symbol table**/
+    /**setting file to point at the start of symbol table**/
     fseek(file, (long)symtable_offset,SEEK_SET);
 
     //reading symbol table from file and saving it
-    if(fread(&symbol_table, sizeof(Elf64_Sym), num_symbols, file)!=num_symbols){
+    if(fread(symbol_table, sizeof(Elf64_Sym), num_symbols, file)!=num_symbols){
         fclose(file);
         free(section_header_table);
         free(symbol_table);
