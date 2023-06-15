@@ -21,6 +21,19 @@
 #define	ET_DYN	3	//Shared object file 
 #define	ET_CORE	4	//Core file 
 
+bool comparing_name(FILE* file,Elf64_Off offset_to_name,const char* symbol_name_given){
+    fseek(file,offset_to_name,SEEK_SET);
+    int sym_char_strtab =fgetc(file);
+    int j=0;
+    while(sym_char_strtab!= EOF || sym_char_strtab != '\0') {
+        if(sym_char_strtab!=symbol_name_given[j]) {
+            return false;
+        }
+        j++;
+        sym_char_strtab=fgetc(file);
+    }
+    return true;
+}
 
 /* symbol_name		- The symbol (maybe function) we need to search for.
  * exe_file_name	- The file where we search the symbol in.
@@ -60,6 +73,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     Elf64_Half section_num=elf_header.e_shnum;
 
     Elf64_Shdr* section_header_table=malloc(sizeof(Elf64_Shdr)*section_num);
+    /**setting file to point at the start of section header table**/
     fseek(file,(long) section_offset, SEEK_SET);
     if(fread(section_header_table,sizeof(Elf64_Shdr),section_num,file)!=section_num){
         free(section_header_table);
@@ -67,64 +81,62 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
         return -1;
     }
 
-    //find SYMTAB inside section header table:
-    while(section_header_table->sh_type!=0x2){
-        fseek(file, section_size, SEEK_CUR);
-        fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
+    //find SYMTAB index inside section header table:
+    int symtab_index=-1;
+    for(int i=0;i<section_num;i++){
+        if(section_header_table[i]->sh_type==2) {
+            symtab_index=i;
+        }
     }
-    //file curr at section table->entry is symtab
+
+
+    /**file curr at the start of section table**/
 
     //offset of symtable from beginning of file:
-    Elf64_Off symtable_offset = section_header_table->sh_offset;
+    Elf64_Off symtable_offset = section_header_table[symtab_index].sh_offset;
     // entry size of symbol in symbol table:
-    Elf64_Xword entry_size_symtable = section_header_table->sh_entsize;
+    Elf64_Xword entry_size_symtable = section_header_table[symtab_index].sh_entsize;
     // symbol table size:
-    Elf64_Xword sym_table_size = section_header_table->sh_size;
+    Elf64_Xword sym_table_size = section_header_table[symtab_index].sh_size;
     // num of section in section header table that is the string table belonging to symtable - strtable:
-    Elf64_Word sym_table_link = section_header_table->sh_link;
+    Elf64_Word sym_table_link = section_header_table[symtab_index].sh_link;
+    //saving the index of strtab (which is the link of symtab)
+    int strtab_index=(int)sym_table_link;
 
     Elf64_Xword num_symbols = sym_table_size/entry_size_symtable;
 
     //create sym_table:
-    Elf64_Sym symbol_table;
-    fseek(file,symtable_offset,SEEK_SET);
-    fread(&symbol_table, sym_table_size, 1, file);
+    Elf64_Sym* symbol_table=malloc(sizeof(Elf64_Sym)*num_symbols);
+    /**setting file to point to the start of symbol table**/
+    fseek(file, (long)symtable_offset,SEEK_SET);
 
-
-    //find STRTAB inside section header table:
-    fseek(file,section_offset+(sym_table_link*section_size),SEEK_SET);
-    fread(&section_header_table,sizeof(Elf64_Shdr),1,file);
-    //file curr at section table->entry is strtab
-    Elf64_Xword str_table_size = section_header_table->sh_size;
-    // offset of strtab from beginning of file:
-    Elf64_Off strtab_offset = section_header_table->sh_offset;
-    //create str_table:
-    char* str_table = (char*)malloc(str_table_size);
-    fseek(file,strtab_offset,SEEK_SET);
-    fread(str_table,str_table_size,1,file);
-    
+    //reading symbol table from file and saving it
+    if(fread(&symbol_table, sizeof(Elf64_Sym), num_symbols, file)!=num_symbols){
+        fclose(file);
+        free(section_header_table);
+        free(symbol_table);
+        return -1;
+    }
 
     //iterate over sym_table:
+    Elf64_Off strtab_offset=section_header_table[strtab_index].sh_offset;
     int flag = 0;
-    for (Elf64_Xword j = 0; j < num_symbols; j++) {
-        fseek(file,symtable_offset+(j*entry_size_symtable),SEEK_SET);
-        fread(&symbol_table,sym_table_size,1,file);
-        char *curr_symbol_name = str_table + symbol_table.st_name;
-        if (strcmp(curr_symbol_name, symbol_name) == 0) {
-            if(ELF64_ST_BIND(symbol_table.st_info)==1){
-                if(symbol_table.st_shndx==0){
+    for(int i=0;i<num_symbols;i++){
+        //comparing symbol name:
+        if(comparing_name(file,strtab_offset+symbol_table[i].st_name,symbol_name)==true){
+            if(ELF64_ST_BIND(symbol_table[i].st_info)==1){ //GLOBAL
+                if(symbol_table[i].st_shndx==0){ //NOT IN FILE
                     *error_val = -4;
-                    free(str_table);
-                    fclose(file);
-                    return -1;
                 }
                 else {
-                    free(str_table);
+                    *error_val = 1;
+                    free(symbol_table);
+                    free(section_header_table);
                     fclose(file);
-                    return symbol_table.st_value;
+                    return symbol_table[i].st_value;
                 }
             }
-            if(ELF64_ST_BIND(symbol_table.st_info)==0){
+            if(ELF64_ST_BIND(symbol_table.st_info)==0){ //LOCAL
                 flag =1;
                 continue;
             }
@@ -134,16 +146,17 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //if symbol is found but is a local symbol:
     if(flag==1){
         *error_val = -2;
-        free(str_table);
-        fclose(file);
         return -1;
     }
     //if symbol is not found in sym_table:
     *error_val = -1;
-    free(str_table);
+    free(symbol_table);
+    free(section_header_table);
     fclose(file);
     return -1;
 }
+
+
 
 int main(int argc, char *const argv[]) {
 	int err = 0;
