@@ -129,7 +129,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
         //comparing symbol name:
         if(comparing_name(file,strtab_offset+symbol_table[i].st_name,symbol_name)==true){
             if(ELF64_ST_BIND(symbol_table[i].st_info)==1){ //GLOBAL
-                if(symbol_table[i].st_value<=0){ //NOT IN FILE
+                if(symbol_table[i].st_shndx==0){ //NOT IN FILE
                     *error_val = -4;
                 }
                 else {
@@ -144,7 +144,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
                 flag =1;
                 continue;
             }
-            break;
+            //break;
         }
     }
     //if symbol is found but is a local symbol:
