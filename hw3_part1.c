@@ -38,16 +38,17 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     }
 
     Elf64_Ehdr elf_header;
-    fread(&elf_header,sizeof(elf_header),1,file);
+    fread(&elf_header, sizeof(elf_header), 1, file);
     Elf64_Half elf_type = elf_header.e_type;
 
     //check if the type is exe:
-    if(elf_type!=2) {
+    if (elf_type != 2) {
         *error_val = -3;
         fclose(file);
         return -1;
     }
-
+}
+/*
     //else, the ELF file is an exe file:
     // find section table offset from beginning of file:
     Elf64_Off section_offset=elf_header.e_shoff;
@@ -137,7 +138,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     fclose(file);
     return -1;
 }
-
+*/
 int main(int argc, char *const argv[]) {
 	int err = 0;
 	unsigned long addr = find_symbol(argv[1], argv[2], &err);
