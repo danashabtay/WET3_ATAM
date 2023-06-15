@@ -146,7 +146,6 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //if symbol is found but is a local symbol:
     if(flag==1){
         *error_val = -2;
-        return -1;
     }
     //if symbol is not found in sym_table:
     *error_val = -1;
