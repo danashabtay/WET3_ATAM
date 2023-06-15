@@ -144,7 +144,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
                 flag =1;
                 continue;
             }
-            //break;
+            break;
         }
     }
     //if symbol is found but is a local symbol:
