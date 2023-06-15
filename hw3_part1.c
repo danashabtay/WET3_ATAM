@@ -51,7 +51,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     }
 
     Elf64_Ehdr elf_header;
-    if(fread(&elf_header, sizeof(elf_header), 1, file)!=1){
+    if(fread(elf_header, sizeof(elf_header), 1, file)!=1){
         fclose(file);
         return -1;
     }
