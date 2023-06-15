@@ -84,7 +84,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //find SYMTAB index inside section header table:
     int symtab_index=-1;
     for(int i=0;i<section_num;i++){
-        if(section_header_table[i]->sh_type==2) {
+        if(section_header_table[i].sh_type==2) {
             symtab_index=i;
         }
     }
@@ -136,7 +136,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
                     return symbol_table[i].st_value;
                 }
             }
-            if(ELF64_ST_BIND(symbol_table.st_info)==0){ //LOCAL
+            if(ELF64_ST_BIND(symbol_table[i].st_info)==0){ //LOCAL
                 flag =1;
                 continue;
             }
