@@ -144,7 +144,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
                     free(symbol_table);
                     free(section_header_table);
                     fclose(file);
-                    return address
+                    return address;
                 }
             }
             else if(ELF64_ST_BIND(symbol_table[i].st_info)==0){ //LOCAL
