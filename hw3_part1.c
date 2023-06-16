@@ -125,6 +125,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //iterate over sym_table:
     Elf64_Off strtab_offset=section_header_table[strtab_index].sh_offset;
     int flag = 0;
+    /*
     for(int i=0;i<num_symbols;++i){
         //comparing symbol name:
         if(comparing_name(file,strtab_offset+symbol_table[i].st_name,symbol_name)==true){
@@ -152,6 +153,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
             break;
         }
     }
+     */
 
     //if symbol is not found in sym_table:
     *error_val = -1;
