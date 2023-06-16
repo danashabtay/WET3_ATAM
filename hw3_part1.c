@@ -153,10 +153,10 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
             break;
         }
     }
-     */
 
+*/
     //if symbol is not found in sym_table:
-    *error_val = -1;
+    *error_val = -4;
 
     //if symbol is found but is a local symbol:
     if(flag==1){
