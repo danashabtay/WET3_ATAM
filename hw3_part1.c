@@ -131,7 +131,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
 
         // Compare the symbol name:
         long strtab_offset = (long) section_header_table[strtab_index].sh_offset;
-        bool is_wanted_symbol = compare_symbol_name(file, strtab_offset + current_symbol.st_name, symbol_name);
+        bool is_wanted_symbol = comparing_name(file, strtab_offset + current_symbol.st_name, symbol_name);
 
         if (is_wanted_symbol) {
             if (ELF64_ST_BIND(current_symbol.st_info) == 0 || ELF64_ST_BIND(current_symbol.st_info) == 1) {
