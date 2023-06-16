@@ -68,7 +68,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     // find section table offset from beginning of file:
     Elf64_Off section_offset=elf_header.e_shoff;
     // size of entry in section table:
-    Elf64_Half section_size=elf_header.e_shentsize;
+    Elf64_Half section_size=elf_header.e_shentsize; //not used
     //num of entries in section table:
     Elf64_Half section_num=elf_header.e_shnum;
 
@@ -83,7 +83,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
 
     //find SYMTAB index inside section header table:
     int symtab_index=-1;
-    for(int i=0;i<section_num;i++){
+    for(int i=0;i<section_num;++i){
         if(section_header_table[i].sh_type==2) {
             symtab_index=i;
         }
@@ -107,7 +107,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //saving the index of strtab (which is the link of symtab)
     int strtab_index=(int)sym_table_link;
 
-    Elf64_Xword num_symbols = sym_table_size/entry_size_symtable;
+    unsigned long num_symbols = sym_table_size/entry_size_symtable; //Elf64_Xword for num symbols
 
     //create sym_table:
     Elf64_Sym* symbol_table=malloc(sizeof(Elf64_Sym)*num_symbols);
@@ -125,12 +125,17 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //iterate over sym_table:
     Elf64_Off strtab_offset=section_header_table[strtab_index].sh_offset;
     int flag = 0;
-    for(int i=0;i<num_symbols;i++){
+    for(int i=0;i<num_symbols;++i){
         //comparing symbol name:
         if(comparing_name(file,strtab_offset+symbol_table[i].st_name,symbol_name)==true){
             if(ELF64_ST_BIND(symbol_table[i].st_info)==1){ //GLOBAL
                 if(symbol_table[i].st_shndx==0){ //NOT IN FILE
                     *error_val = -4;
+                    free(symbol_table);
+                    free(section_header_table);
+                    fclose(file);
+                    return -1;
+
                 }
                 else {
                     *error_val = 1;
@@ -147,12 +152,14 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
             break;
         }
     }
+
+    //if symbol is not found in sym_table:
+    *error_val = -1;
+
     //if symbol is found but is a local symbol:
     if(flag==1){
         *error_val = -2;
     }
-    //if symbol is not found in sym_table:
-    *error_val = -1;
     free(symbol_table);
     free(section_header_table);
     fclose(file);
