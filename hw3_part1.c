@@ -122,6 +122,47 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
         return -1;
     }
 
+    /**-----CHECKING LOOP----**/
+    int wanted_symbol_bind = -1;
+    unsigned long load_address = 0;
+    // Go over all the symbols:
+    for (int i = 0; i < num_symbols; ++i) {
+        Elf64_Sym current_symbol = symbol_table[i];
+
+        // Compare the symbol name:
+        long strtab_offset = (long) section_header_table[strtab_index].sh_offset;
+        bool is_wanted_symbol = compare_symbol_name(file, strtab_offset + current_symbol.st_name, symbol_name);
+
+        if (is_wanted_symbol) {
+            if (ELF64_ST_BIND(current_symbol.st_info) == 0 || ELF64_ST_BIND(current_symbol.st_info) == 1) {
+                if (wanted_symbol_bind != 1) {
+                    wanted_symbol_bind = ELF64_ST_BIND(current_symbol.st_info);
+                    load_address = current_symbol.st_value;
+                }
+            }
+        }
+    }
+
+    if (wanted_symbol_bind == -1) {
+        *error_val = -1;
+    } else if (wanted_symbol_bind == 0) {
+        *error_val = -2;
+    } else if (wanted_symbol_bind == 1) {
+        if (load_address > 0) {
+            *error_val = 1;
+        } else {
+            *error_val = -4;
+        }
+    }
+
+    free(symbol_table);
+    free(section_header_table);
+    fclose(file);
+
+    return load_address;
+}
+/**-----CHECKING LOOP----**/
+/*
     //iterate over sym_table:
     Elf64_Off strtab_offset=section_header_table[strtab_index].sh_offset;
     int flag = 0;
@@ -168,7 +209,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
 }
 
 
-
+*/
 int main(int argc, char *const argv[]) {
 	int err = 0;
 	unsigned long addr = find_symbol(argv[1], argv[2], &err);
