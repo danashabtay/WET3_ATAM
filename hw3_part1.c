@@ -105,20 +105,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     // num of section in section header table that is the string table belonging to symtable - strtable:
     Elf64_Word sym_table_link = section_header_table[symtab_index].sh_link;
     //saving the index of strtab (which is the link of symtab)
-   // int strtab_index=(int)sym_table_link; //TODO - check if works
-
-   /**---------ADDED TO CHECK LINK---------**/
-   int strtab_index=-1;
-    for (int i = 0; i < elf_header.e_shnum; ++i) {
-        unsigned long shstrtab_offset = section_header_table[elf_header.e_shstrndx].sh_offset;
-        bool is_strtab = comparing_name(file, (long) shstrtab_offset + section_header_table[i].sh_name, ".strtab");
-
-        if (is_strtab){
-            strtab_index = i;
-        }
-    }
-    /**---------ADDED TO CHECK LINK---------**/
-
+    int strtab_index=(int)sym_table_link;
 
     unsigned long num_symbols = sym_table_size/entry_size_symtable; //Elf64_Xword for num symbols
 
