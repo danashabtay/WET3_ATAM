@@ -125,10 +125,10 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     //iterate over sym_table:
     Elf64_Off strtab_offset=section_header_table[strtab_index].sh_offset;
     int flag = 0;
-    /*
+    unsigned long address=0;
     for(int i=0;i<num_symbols;++i){
         //comparing symbol name:
-        if(comparing_name(file,strtab_offset+symbol_table[i].st_name,symbol_name)==true){
+        if(comparing_name(file,strtab_offset+(symbol_table[i].st_name),symbol_name)==true){
             if(ELF64_ST_BIND(symbol_table[i].st_info)==1){ //GLOBAL
                 if(symbol_table[i].st_shndx==0){ //NOT IN FILE
                     *error_val = -4;
@@ -140,23 +140,22 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
                 }
                 else {
                     *error_val = 1;
+                    address=symbol_table[i].st_value;
                     free(symbol_table);
                     free(section_header_table);
                     fclose(file);
-                    return symbol_table[i].st_value;
+                    return address
                 }
             }
-            if(ELF64_ST_BIND(symbol_table[i].st_info)==0){ //LOCAL
+            else if(ELF64_ST_BIND(symbol_table[i].st_info)==0){ //LOCAL
                 flag =1;
-                continue;
             }
-            break;
         }
     }
 
-*/
+
     //if symbol is not found in sym_table:
-    *error_val = -4;
+    *error_val = -1;
 
     //if symbol is found but is a local symbol:
     if(flag==1){
