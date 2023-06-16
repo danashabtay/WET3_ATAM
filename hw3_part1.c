@@ -25,7 +25,7 @@ bool comparing_name(FILE* file,Elf64_Off offset_to_name,const char* symbol_name_
     fseek(file,offset_to_name,SEEK_SET);
     int sym_char_strtab =fgetc(file);
     int j=0;
-    while(sym_char_strtab!= EOF || sym_char_strtab != '\0') {
+    while(sym_char_strtab!= EOF && sym_char_strtab != '\0') {
         if(sym_char_strtab!=symbol_name_given[j]) {
             return false;
         }
