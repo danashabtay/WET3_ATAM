@@ -147,7 +147,7 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
                     return address;
                 }
             }
-            else if(ELF64_ST_BIND(symbol_table[i].st_info)==0){ //LOCAL
+            else if(ELF64_ST_BIND(symbol_table[i].st_info)==0 && symbol_table[i].st_value>0){ //LOCAL
                 flag =1;
             }
         }
@@ -158,11 +158,11 @@ unsigned long find_symbol(char* symbol_name, char* exe_file_name, int* error_val
     *error_val = -1;
 
     //if symbol is found but is a local symbol:
-
     if(flag==1){
         *error_val = -2;
     }
-     
+
+
     free(symbol_table);
     free(section_header_table);
     fclose(file);
